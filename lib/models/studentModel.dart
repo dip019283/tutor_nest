@@ -9,6 +9,7 @@ class Student {
   final String? country;
   final String? gender;
   final String? photo;
+  final bool isEmailVerified;
 
   Student({
     required this.studentId,
@@ -19,6 +20,7 @@ class Student {
     this.country,
     this.gender,
     this.photo,
+    this.isEmailVerified = false, // Default value
   });
 
   factory Student.fromFirestore(DocumentSnapshot doc) {
@@ -33,6 +35,7 @@ class Student {
       country: data['country'],
       gender: data['gender'],
       photo: data['photo'],
+      isEmailVerified: data['isEmailVerified'] ?? false, // Default to false
     );
   }
 
@@ -45,6 +48,7 @@ class Student {
       'country': country,
       'gender': gender,
       'photo': photo,
+      'isEmailVerified': isEmailVerified, // Add to Firestore
     };
   }
 
@@ -56,6 +60,7 @@ class Student {
     String? country,
     String? gender,
     String? photo,
+    bool? isEmailVerified,
   }) {
     return Student(
       studentId: this.studentId,
@@ -66,6 +71,7 @@ class Student {
       country: country ?? this.country,
       gender: gender ?? this.gender,
       photo: photo ?? this.photo,
+      isEmailVerified: isEmailVerified ?? this.isEmailVerified,
     );
   }
 }

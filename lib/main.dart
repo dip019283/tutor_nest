@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:tutornest/firebase_options.dart';
 import 'package:tutornest/pages/Admin/admin_main_page.dart';
+import 'package:tutornest/pages/ApplicationProcessing.dart';
 import 'package:tutornest/pages/Student/payment_page_content.dart';
 import 'package:tutornest/pages/Student/student_live_stream_page.dart';
 import 'package:tutornest/pages/Student/student_main_page.dart';
@@ -53,9 +54,10 @@ class MyApp extends StatelessWidget {
         '/esewaPayment': (context) => PaymentPage(),
         // '/main': (context) => SettingsPageContent(),
         // '/main': (context) => TutorDetailsContent(),
-        // '/main': (context) => TutorMainPage(),
+        '/main': (context) => TutorMainPage(),
         // '/main': (context) => WalletPage(),
         '/adminmain': (context) => AdminMainPage(),
+        '/processing':(context)=>TutorApplicationProcessingPage(),
 
 
 
