@@ -8,6 +8,7 @@ import 'package:tutornest/models/userModel.dart';
 import 'package:tutornest/pages/Student/tutor_details_content.dart';
 import 'package:tutornest/pages/forgot_password_otp.dart';
 import 'package:tutornest/pages/forgot_password_page_content.dart';
+import 'package:bcrypt/bcrypt.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -98,41 +99,91 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+
   Future<void> loginUser() async {
     try {
-      if(_emailController.text == 'admin' && _passwordController.text == 'admin'){
+      // Admin hardcoded check
+      if (_emailController.text == 'admin' && _passwordController.text == 'admin') {
         await secureStorage.write(key: 'userId', value: 'admin');
         Navigator.pushReplacementNamed(context, '/adminmain');
         return;
       }
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
 
-      String userId = userCredential.user!.uid;
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: _emailController.text)
+          .get();
 
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
-      if (userDoc.exists) {
-        String userRole = userDoc['user_role'] ?? 'student';
+      if (querySnapshot.docs.isEmpty) {
+        throw Exception("User not found.");
+      }
 
-        print("User data: ${userDoc.data()}");
+      DocumentSnapshot userDoc = querySnapshot.docs.first;
 
-        await secureStorage.write(key: 'userId', value: userId);
+      String storedHashedPassword = userDoc['password'];
+      bool isPasswordValid = BCrypt.checkpw(_passwordController.text, storedHashedPassword);
 
-        if (userRole == 'student') {
-          Navigator.pushReplacementNamed(context, '/studentmain');
+      if (!isPasswordValid) {
+        throw Exception("Incorrect password.");
+      }
+
+      String userId = userDoc.id;
+      String userRole = userDoc['user_role'] ?? 'student';
+
+      print("User data: ${userDoc.data()}");
+
+      await secureStorage.write(key: 'userId', value: userId);
+
+      if (userRole == 'student') {
+        QuerySnapshot studentQuery = await _firestore
+            .collection('students')
+            .where('email', isEqualTo: _emailController.text)
+            .get();
+
+        if (studentQuery.docs.isEmpty) {
+          throw Exception("User not found.");
+        }
+
+        DocumentSnapshot studentDoc = studentQuery.docs.first;
+        bool isEmailVerified = studentDoc['isEmailVerified'] ?? false;
+
+        if (!isEmailVerified) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Email not verified')),
+          );
         } else {
-          Navigator.pushReplacementNamed(context, '/main');
+          Navigator.pushReplacementNamed(context, '/studentmain');
         }
       } else {
-        throw Exception("User data not found.");
+        // Check tutors collection for verification
+        QuerySnapshot tutorQuery = await _firestore
+            .collection('tutors')
+            .where('email', isEqualTo: _emailController.text)
+            .get();
+
+        if (tutorQuery.docs.isNotEmpty) {
+          DocumentSnapshot tutorDoc = tutorQuery.docs.first;
+
+          bool isVerified = tutorDoc['isVerified'] ?? false;
+          if (isVerified) {
+            Navigator.pushReplacementNamed(context, '/main');
+          } else {
+            Navigator.pushReplacementNamed(context, '/processing');
+          }
+        } else {
+          Navigator.pushReplacementNamed(context, '/studentmain');
+        }
       }
     } catch (e) {
       print(e);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
     }
   }
+
+
+
 
 
   @override

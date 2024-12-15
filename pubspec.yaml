@@ -55,6 +55,7 @@ dependencies:
   http: ^1.2.2
   esewa_flutter: ^2.0.0
   youtube_player_flutter: ^9.1.1
+  email_otp: ^3.0.2
 
 dev_dependencies:
   flutter_test:

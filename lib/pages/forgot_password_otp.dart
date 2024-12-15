@@ -1,6 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:email_otp/email_otp.dart';
 import 'package:flutter/material.dart';
-// import 'package:firebase_auth/firebase_auth.dart'; // Uncomment when integrating Firebase
-// import 'package:cloud_firestore/cloud_firestore.dart'; // If you store OTP in Firestore
+import 'package:tutornest/pages/password_reset_page.dart';
 
 class ForgotPasswordOtpPage extends StatefulWidget {
   const ForgotPasswordOtpPage({Key? key}) : super(key: key);
@@ -22,54 +23,51 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
     super.dispose();
   }
 
-  // Example methods for backend integration (commented out):
+  void _onVerifyPressed() async {
+    bool isValid = await EmailOTP.verifyOTP(
+      otp: _otpController.text,
+    );
 
-  // Future<void> _sendOtp() async {
-  //   final email = _emailController.text.trim();
-  //   if (email.isEmpty) {
-  //     ScaffoldMessenger.of(context)
-  //         .showSnackBar(const SnackBar(content: Text('Please enter your email')));
-  //     return;
-  //   }
-  //
-  //   try {
-  //     // 1. Verify that user with this email exists in Firebase Auth
-  //     // 2. Generate an OTP code
-  //     // 3. Store OTP in Firestore linked to this user's email or UID
-  //     // 4. Send OTP via Cloud Functions / SendGrid / Email API
-  //
-  //     setState(() {
-  //       _otpSent = true;
-  //     });
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('OTP sent to $email'))
-  //     );
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context)
-  //         .showSnackBar(SnackBar(content: Text('Error sending OTP: ${e.toString()}')));
-  //   }
-  // }
+    if (isValid) {
+      try {
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>ChangePasswordPage(email:_emailController.text)));
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to verify email')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid OTP')),
+      );
+    }
+  }
 
-  // Future<void> _verifyOtp() async {
-  //   final enteredOtp = _otpController.text.trim();
-  //   if (enteredOtp.isEmpty) {
-  //     ScaffoldMessenger.of(context)
-  //         .showSnackBar(const SnackBar(content: Text('Please enter the OTP')));
-  //     return;
-  //   }
-  //
-  //   try {
-  //     // Check the OTP against the stored value in Firestore
-  //     // If matches and not expired, allow user to reset password
-  //     // Possibly navigate to a "Reset Password" screen
-  //
-  //     ScaffoldMessenger.of(context)
-  //         .showSnackBar(const SnackBar(content: Text('OTP verified. Proceed to reset password.')));
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context)
-  //         .showSnackBar(SnackBar(content: Text('Error verifying OTP: ${e.toString()}')));
-  //   }
-  // }
+  void _onResendPressed() async {
+    EmailOTP.config(
+      appName: 'TutorNest',
+      otpType: OTPType.numeric,
+      expiry: 60000,
+      emailTheme: EmailTheme.v1,
+      appEmail: 'tutornest.customercare@gmail.com',
+      otpLength: 6,
+    );
+    bool result = await EmailOTP.sendOTP(email: _emailController.text);
+    if (result) {
+      setState(() {
+        _otpSent = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('OTP has been sent')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to send OTP')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +79,6 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Email Field
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(
@@ -90,11 +87,9 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.emailAddress,
-              enabled: !_otpSent, // disable editing email after OTP is sent
+              enabled: !_otpSent,
             ),
             const SizedBox(height: 20),
-
-            // Conditionally show OTP field only after it has been sent
             if (_otpSent)
               TextField(
                 controller: _otpController,
@@ -104,28 +99,16 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
                   border: OutlineInputBorder(),
                 ),
               ),
-
             const SizedBox(height: 20),
-
-            // Send OTP or Verify OTP buttons
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
                       if (!_otpSent) {
-                        // _sendOtp();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Send OTP button pressed (Backend commented out)')),
-                        );
-                        setState(() {
-                          _otpSent = true; // simulate OTP sent state
-                        });
+                        _onResendPressed();
                       } else {
-                        // _verifyOtp();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Verify OTP button pressed (Backend commented out)')),
-                        );
+                        _onVerifyPressed();
                       }
                     },
                     child: Text(!_otpSent ? 'Send OTP' : 'Verify OTP'),

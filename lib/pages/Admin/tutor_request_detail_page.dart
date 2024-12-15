@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -96,6 +98,23 @@ class _VerifyTutorPageState extends State<VerifyTutorPage> {
                   ListTile(
                     title: Text('Interests: ${tutor['interests']}'),
                   ),
+                  ListTile(
+                    title: Text('CV:'),
+                    subtitle: Image.memory(
+                      base64Decode(tutor['cv']),
+                      width: 200, // Adjust width as needed
+                      height: 200, // Adjust height as needed
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  ListTile(
+                    title: Text('Profile Photo:'),
+                    subtitle: Image.memory(
+                      base64Decode(tutor['photo'] ?? ''),
+                      width: 100, // Adjust width as needed
+                      height: 100, // Adjust height as needed
+                    fit: BoxFit.cover,
+                  ),),
                   ButtonBar(
                     children: [
                       ElevatedButton(

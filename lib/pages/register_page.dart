@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:tutornest/models/studentModel.dart';
 import 'package:tutornest/models/userModel.dart';
 import 'package:bcrypt/bcrypt.dart';
+import 'package:email_otp/email_otp.dart';
+import 'package:tutornest/pages/otp_page_register.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -39,6 +41,28 @@ class _RegisterPageState extends State<RegisterPage> {
     "Japan",
     "Brazil",
   ];
+
+  void sendOTP()async{
+    EmailOTP.config(
+      appName: 'TutorNest',
+      otpType: OTPType.numeric,
+      expiry : 60000,
+      emailTheme: EmailTheme.v1,
+      appEmail: 'tutornest.customercare@gmail.com',
+      otpLength: 6,
+    );
+    bool result = await EmailOTP.sendOTP(email: _emailController.text);
+    if(result){
+      Navigator.push(context, MaterialPageRoute(builder: (context) => OtpPage(userEmail:_emailController.text)));
+    }else{
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Something went wrong while sending OTP'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   Future<void> registerUser() async {
     if (_formKey.currentState!.validate()) {
@@ -94,7 +118,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Student registered successfully")),
         );
-        Navigator.pushNamed(context, '/login');
+        sendOTP();
       } catch (e) {
         print(e);
         ScaffoldMessenger.of(context).showSnackBar(

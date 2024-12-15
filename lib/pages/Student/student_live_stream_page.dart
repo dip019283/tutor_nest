@@ -189,8 +189,7 @@ class _StudentLiveStreamPageState extends State<StudentLiveStreamPage> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
-                _showFeedbackDialog();
+                Navigator.pushReplacementNamed(context, '/studentmain');
               },
               child: const Text('Yes'),
             ),

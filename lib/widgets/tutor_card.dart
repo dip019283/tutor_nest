@@ -56,6 +56,8 @@
 
 // lib/widgets/tutor_card.dart
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../models/tutor_item.dart';
 
@@ -83,7 +85,7 @@ class TutorCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundImage: NetworkImage(tutor.profilePicture),
+                    backgroundImage: MemoryImage(base64Decode(tutor.profilePicture)),
                     backgroundColor: Colors.grey.shade300,
                     child: tutor.profilePicture.isEmpty
                         ? Icon(
