@@ -51,6 +51,27 @@ class _HomePageContentState extends State<HomePageContent> {
     }
   }
 
+  Future<double> _fetchTutorRating(String tutorId) async {
+    try {
+      final QuerySnapshot ratingsSnapshot = await _firestore
+          .collection('ratings')
+          .where('tutorId', isEqualTo: tutorId)
+          .get();
+
+      if (ratingsSnapshot.docs.isEmpty) return 0.0;
+
+      final totalRating = ratingsSnapshot.docs.fold(0.0, (sum, doc) {
+        return sum + (doc['rating'] ?? 0.0);
+      });
+
+      return totalRating / ratingsSnapshot.docs.length;
+    } catch (e) {
+      print('Error fetching ratings for tutor $tutorId: $e');
+      return 0.0;
+    }
+  }
+
+
   void _filterTutors(String query) {
     setState(() {
       _searchQuery = query.toLowerCase();
@@ -293,25 +314,34 @@ class _HomePageContentState extends State<HomePageContent> {
               itemCount: _filteredTutors.length,
               itemBuilder: (context, index) {
                 var tutor = _filteredTutors[index];
-                return TutorCard(
-                  tutor: TutorItem(
-                    id: tutor.tutorId,
-                    name: tutor.username ?? 'Unknown Tutor',
-                    subjects: tutor.specialties,
-                    rating: 4.5, // You might want to fetch this from Firestore
-                    profilePicture: tutor.photo ?? 'https://example.com/default_profile.jpg',
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TutorDetailsPage(tutorId: tutor.tutorId),
+                return FutureBuilder<double>(
+                  future: _fetchTutorRating(tutor.tutorId),
+                  builder: (context, snapshot) {
+                    final rating = snapshot.data ?? 0.0;
+                    return TutorCard(
+                      tutor: TutorItem(
+                        id: tutor.tutorId,
+                        name: tutor.username ?? 'Unknown Tutor',
+                        subjects: tutor.specialties,
+                        rating: rating,
+                        profilePicture:
+                        tutor.photo ?? 'https://example.com/default_profile.jpg',
                       ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TutorDetailsPage(tutorId: tutor.tutorId),
+                          ),
+                        );
+                      },
                     );
                   },
                 );
               },
             ),
+
         ],
       ),
     );

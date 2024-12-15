@@ -1,5 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:tutornest/pages/Student/student_live_stream_page.dart';
 
 class BookingCard extends StatelessWidget {
   final Map<String, dynamic> data;  // Booking data
@@ -17,9 +19,38 @@ class BookingCard extends StatelessWidget {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
-    // Debug print to see what data we're receiving
+
+
+    void CancelBooking(String date, String startTime, String endTime) async {
+      try {
+        // Convert start and end time strings back to DateTime for querying
+        DateTime parsedStartTime = DateTime.parse(startTime);
+        DateTime parsedEndTime = DateTime.parse(endTime);
+        DateTime parsedDate = DateTime.parse(date);
+
+        // Query the bookings collection for a matching document
+        QuerySnapshot snapshot = await FirebaseFirestore.instance
+            .collection('bookings')
+            .where('date', isEqualTo: Timestamp.fromDate(parsedDate))
+            .where('start_time', isEqualTo: Timestamp.fromDate(parsedStartTime))
+            .where('end_time', isEqualTo: Timestamp.fromDate(parsedEndTime))
+            .get();
+
+        // Iterate through and delete matching documents
+        for (var doc in snapshot.docs) {
+          await doc.reference.delete();
+          print("Booking with ID ${doc.id} has been successfully canceled.");
+        }
+      } catch (e) {
+        print("Error canceling booking: $e");
+      }
+    }
+
+
+
     print('BookingCard Data: $data');
     print('Tutor Name: $tutorName');
 
@@ -136,9 +167,7 @@ class BookingCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Handle Cancel action
-                    },
+                    onPressed: () =>CancelBooking(date, startTime, endTime),
                     icon: const Icon(Icons.cancel_outlined),
                     label: const Text("Cancel"),
                     style: ElevatedButton.styleFrom(
@@ -152,7 +181,8 @@ class BookingCard extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // Handle Go to Class action
+                      Navigator.push(context, MaterialPageRoute(builder: (context)=>
+                          StudentLiveStreamPage()));
                     },
                     icon: const Icon(Icons.video_call),
                     label: const Text("Go to class"),

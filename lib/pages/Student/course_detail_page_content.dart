@@ -24,10 +24,16 @@ class _CourseDetailsPageContentState extends State<CourseDetailsPageContent> {
 
   Future<Course> fetchCourseDetails(String courseId) async {
     try {
-      // Fetch course data directly from Firestore
-      final snapshot = await FirebaseFirestore.instance.collection('courses').doc(courseId).get();
-      if (snapshot.exists) {
-        return Course.fromMap(snapshot.data() as Map<String, dynamic>);
+      // Query Firestore where the courseId field matches the provided courseId
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('courses')
+          .where('courseId', isEqualTo: courseId)
+          .limit(1)  // Assuming courseId is unique, we limit the result to 1
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Return the course data from the first document
+        return Course.fromMap(querySnapshot.docs.first.data() as Map<String, dynamic>);
       } else {
         throw Exception("Course not found");
       }
@@ -35,6 +41,7 @@ class _CourseDetailsPageContentState extends State<CourseDetailsPageContent> {
       throw Exception("Failed to load course details: $e");
     }
   }
+
 
   void _showVideoPopup(BuildContext context, String videoUrl) {
     showDialog(

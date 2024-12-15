@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:tutornest/models/bookingModel.dart';
@@ -32,6 +34,7 @@ class TutorDetailsPage extends StatefulWidget {
 class _TutorDetailsPageState extends State<TutorDetailsPage> {
   final secureStorage = FlutterSecureStorage();
   Tutor? tutor;
+  double? averageRating;
 
   String tutorImage =
       "https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
@@ -76,13 +79,42 @@ class _TutorDetailsPageState extends State<TutorDetailsPage> {
   Future<void> loadTutorData() async {
     String? documentId = widget.tutorId;
     if (documentId != null) {
+      // Fetch tutor data
       Tutor? fetchedTutor = await getTutorData(documentId);
-      if (fetchedTutor != null) {
-        setState(() {
-          tutor = fetchedTutor;
-        });
-      }
+
+      // Fetch ratings for the tutor
+      double? calculatedRating = await calculateAverageRating(documentId);
+
+      setState(() {
+        tutor = fetchedTutor;
+        averageRating = calculatedRating ?? 0.0; // Store the rating
+      });
     }
+  }
+
+  Future<double?> calculateAverageRating(String tutorId) async {
+    try {
+      QuerySnapshot ratingsSnapshot = await FirebaseFirestore.instance
+          .collection('ratings')
+          .where('tutorId', isEqualTo: tutorId)
+          .get();
+
+      List<QueryDocumentSnapshot> ratingDocs = ratingsSnapshot.docs;
+
+      if (ratingDocs.isNotEmpty) {
+        // Calculate the sum of all ratings
+        double totalRating = ratingDocs.fold(
+          0.0,
+              (sum, doc) => sum + (doc['rating'] as num).toDouble(),
+        );
+
+        // Calculate the average
+        return totalRating / ratingDocs.length;
+      }
+    } catch (e) {
+      print('Error calculating average rating: $e');
+    }
+    return null;
   }
 
 
@@ -108,7 +140,7 @@ class _TutorDetailsPageState extends State<TutorDetailsPage> {
               // Profile Photo with NetworkImage
               CircleAvatar(
                 radius: 60,
-                backgroundImage: NetworkImage(tutorImage),
+                backgroundImage: MemoryImage(base64Decode(tutor?.photo ??'')),
                 backgroundColor: Colors.transparent,
                 onBackgroundImageError: (exception, stackTrace) {
                   // Handle image loading error
@@ -130,7 +162,7 @@ class _TutorDetailsPageState extends State<TutorDetailsPage> {
                       Icon(Icons.star, color: Colors.amber, size: 20),
                       SizedBox(width: 4),
                       Text(
-                        '5.0',
+                        averageRating.toString(),
                         style:
                         TextStyle(fontSize: 16, color: Colors.grey[800]),
                       ),
@@ -283,18 +315,15 @@ class _TutorDetailsPageState extends State<TutorDetailsPage> {
               ),
               SizedBox(height: 25),
               // Video Section
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Introduction Video',
-                  style: Theme.of(context).textTheme.titleMedium,
+
+              ListTile(
+                title: Text('CV:'),
+                subtitle: Image.memory(
+                  base64Decode(tutor?.cv ?? ''),
+                  width: 200, // Adjust width as needed
+                  height: 200, // Adjust height as needed
+                  fit: BoxFit.cover,
                 ),
-              ),
-              SizedBox(height: 10),
-              // Constrain video width to screen width and allow dynamic height
-              Container(
-                width: double.infinity,
-                child: VideoCard(videoUrl: videoUrls[0]),
               ),
               SizedBox(height: 25),
               // Education Section

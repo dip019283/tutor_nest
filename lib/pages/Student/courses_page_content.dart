@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../models/courseModel.dart';
-import '../../services/courses_service.dart'; // Import the service
-import '../../widgets/course_card.dart';      // Import the CourseCard widget
-import 'course_details_page.dart';        // Import the CourseDetailsPage
+import '../../widgets/course_card.dart';
+import 'course_details_page.dart';
 
 class CoursesPageContent extends StatefulWidget {
   @override
@@ -11,24 +10,45 @@ class CoursesPageContent extends StatefulWidget {
 }
 
 class _CoursesPageContentState extends State<CoursesPageContent> {
-  final CoursesService _coursesService = CoursesService();
-
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
-  Future<List<Course>> fetchCourses() async {
-    try {
-      final snapshot = await _db.collection('courses').get();
-      return snapshot.docs.map((doc) {
-        return Course.fromMap(doc.data() as Map<String, dynamic>);
-      }).toList();
-    } catch (e) {
-      throw Exception("Failed to load courses: $e");
-    }
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase();
+    });
+  }
+
+  Stream<List<Course>> searchCourses(String query) {
+    return _db
+        .collection('courses')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => Course.fromMap(doc.data() as Map<String, dynamic>))
+          .where((course) =>
+      query.isEmpty ||
+          course.courseName.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Removed the Scaffold, AppBar, Drawer, and BottomNavigationBar as they are handled in MainPage
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -49,17 +69,27 @@ class _CoursesPageContentState extends State<CoursesPageContent> {
             ],
           ),
           const SizedBox(height: 16),
-          // Search Bar
+          // Search Bar with Controller
           Row(
             children: [
               Expanded(
                 child: TextField(
+                  controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: "Search...",
+                    hintText: "Search courses...",
                     prefixIcon: Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
+                    // Add clear button when there's text
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                      icon: Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                      },
+                    )
+                        : null,
                   ),
                 ),
               ),
@@ -77,16 +107,15 @@ class _CoursesPageContentState extends State<CoursesPageContent> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          // Courses List
+          // Courses List with StreamBuilder
           Expanded(
-            child: FutureBuilder<List<Course>>(
-              // Call the fetchCourses() method here
-              future: fetchCourses(),
+            child: StreamBuilder<List<Course>>(
+              stream: searchCourses(_searchQuery),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
-                  return Center(child: Text("Failed to load courses."));
+                  return Center(child: Text("Error: ${snapshot.error}"));
                 } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                   return ListView.builder(
                     itemCount: snapshot.data!.length,
@@ -95,11 +124,11 @@ class _CoursesPageContentState extends State<CoursesPageContent> {
                       return CourseCard(
                         course: course,
                         onTap: () {
-                          // Navigate to CourseDetailsPage
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CourseDetailsPage(courseId: course.courseId),
+                              builder: (context) =>
+                                  CourseDetailsPage(courseId: course.courseId),
                             ),
                           );
                         },
@@ -107,7 +136,13 @@ class _CoursesPageContentState extends State<CoursesPageContent> {
                     },
                   );
                 } else {
-                  return Center(child: Text("No courses available."));
+                  return Center(
+                    child: Text(
+                      _searchQuery.isEmpty
+                          ? "No courses available."
+                          : "No courses found matching '$_searchQuery'",
+                    ),
+                  );
                 }
               },
             ),

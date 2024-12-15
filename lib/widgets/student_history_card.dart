@@ -38,7 +38,7 @@ class HistoryCard extends StatelessWidget {
         : "Unknown Date";
 
     // Safely extract status
-    final status = data['status']?.toString() ?? "Unknown Status";
+    final status = "completed";
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -131,40 +131,6 @@ class HistoryCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Handle Cancel action
-                    },
-                    icon: const Icon(Icons.cancel_outlined),
-                    label: const Text("Cancel"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade50,
-                      foregroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Handle Go to Class action
-                    },
-                    icon: const Icon(Icons.video_call),
-                    label: const Text("Go to class"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),

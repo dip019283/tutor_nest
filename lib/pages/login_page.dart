@@ -109,7 +109,6 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // Query Firestore users collection for the provided email
       QuerySnapshot querySnapshot = await _firestore
           .collection('users')
           .where('email', isEqualTo: _emailController.text)
@@ -119,10 +118,8 @@ class _LoginPageState extends State<LoginPage> {
         throw Exception("User not found.");
       }
 
-      // Assuming the email is unique, get the first user document
       DocumentSnapshot userDoc = querySnapshot.docs.first;
 
-      // Validate password using bcrypt
       String storedHashedPassword = userDoc['password'];
       bool isPasswordValid = BCrypt.checkpw(_passwordController.text, storedHashedPassword);
 
@@ -130,18 +127,33 @@ class _LoginPageState extends State<LoginPage> {
         throw Exception("Incorrect password.");
       }
 
-      // Retrieve user data
       String userId = userDoc.id;
       String userRole = userDoc['user_role'] ?? 'student';
 
       print("User data: ${userDoc.data()}");
 
-      // Store userId in secure storage
       await secureStorage.write(key: 'userId', value: userId);
 
-      // Role-based navigation
       if (userRole == 'student') {
-        Navigator.pushReplacementNamed(context, '/studentmain');
+        QuerySnapshot studentQuery = await _firestore
+            .collection('students')
+            .where('email', isEqualTo: _emailController.text)
+            .get();
+
+        if (studentQuery.docs.isEmpty) {
+          throw Exception("User not found.");
+        }
+
+        DocumentSnapshot studentDoc = studentQuery.docs.first;
+        bool isEmailVerified = studentDoc['isEmailVerified'] ?? false;
+
+        if (!isEmailVerified) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Email not verified')),
+          );
+        } else {
+          Navigator.pushReplacementNamed(context, '/studentmain');
+        }
       } else {
         // Check tutors collection for verification
         QuerySnapshot tutorQuery = await _firestore
